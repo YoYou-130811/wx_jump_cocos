@@ -20,7 +20,7 @@
   "includeSDKBox": false,
   "inlineSpriteFrames": true,
   "inlineSpriteFrames_native": true,
-  "md5Cache": true,
+  "md5Cache": false,
   "mergeStartScene": false,
   "optimizeHotUpdate": false,
   "orientation": {
@@ -29,21 +29,22 @@
     "portrait": false,
     "upsideDown": false
   },
-  "packageName": "org.cocos2d.jump",
+  "packageName": "org.cocos2d.tomJump3",
   "qqplay": {
     "REMOTE_SERVER_ROOT": "",
     "orientation": "portrait",
     "zip": false
   },
-  "startScene": "c1418ae6-917e-4f4f-bd75-642bb75c78f9",
-  "title": "jump",
+  "startScene": "204d33c4-9892-431d-ad79-df81ac4f350b",
+  "title": "tomJump3",
   "webOrientation": "auto",
   "wechatgame": {
     "REMOTE_SERVER_ROOT": "",
     "appid": "wx127dd2aed53197c6",
     "orientation": "portrait",
+    "separate_engine": false,
     "subContext": ""
   },
-  "xxteaKey": "4ddb2b2e-f60d-4d",
+  "xxteaKey": "7b8d7568-3cfe-4a",
   "zipCompressJs": true
 }
