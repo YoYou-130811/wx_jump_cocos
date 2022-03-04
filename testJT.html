@@ -1,0 +1,535 @@
+<!--
+ * @Author         : 杨洋
+ * @Date           : 2021-10-09 09:25:54
+ * @lastTime       : 2022-03-03 09:09:22
+ * @文件相对于项目的路径     : \three\examples\testJT.html
+ * @Description    : 
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Test three.js</title>
+		<style>
+			body {
+				margin: 0px
+			}
+			/* .divStyle {
+				position: absolute;
+				background-image: url('textures/dhk.jpg');
+				width: 278px;
+				height: 215px;
+			}
+			.divP {
+				padding-top: 30%;
+				padding-left: 40%;
+				padding-right: 20%;
+			} */
+		</style>
+    </head>
+    <body style="overflow: hidden;">
+        <div id="container"></div>
+        <!-- <div id="tag" class="divStyle">
+            <div id="divP" class="divP">
+                我是标签
+            </div>
+        </div> -->
+        <script src="../build/three.js"></script>
+		<script src="js/WebGL.js"></script>
+        <script src="js/libs/dat.gui.min.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+        <script src="js/controls/TrackballControls.js"></script>
+        <script src="js/controls/FirstPersonControls.js"></script>
+        <script src="js/libs/inflate.min.js"></script>
+        <script src="js/loaders/FBXLoader.js"></script>
+        <script src="js/TweenJS/dist/tween.umd.js"></script>
+        <script src="js/GPUParticleSystem.js"></script>
+        <script type="module">
+            import { PointArrow } from './js/p2p/PointArrow.js';
+            import { LineArrs } from './js/p2p/LineArrs.js';
+            import { LightRing } from './js/p2p/LightRing.js';
+            import { TagInfo } from './js/p2p/TagInfo.js';
+            import { SpriteInfo } from './js/p2p/SpriteInfo.js';
+
+            if ( !WEBGL.isWebGLAvailable() )
+                document.body.appendChild( WEBGL.getWebErrorMessage() );
+
+            let camera, renderer, scene, mouseX, mouseY, stats, controls, clock, shaderParams,
+                windowHalfX, windowHalfY, jtMoveTime = 2, isLoadTexture = false,
+                startP = new THREE.Vector3( -100, -1, 40 ), endP = new THREE.Vector3( 0, -1, -40 ),
+                spriteInfo, tagInfo, showType = true;
+
+
+            let particleSystem;
+            function init () {
+
+                window.showInfo = false;
+
+                mouseX = mouseY = 0;
+                windowHalfX = innerWidth / 2;
+                windowHalfY = innerHeight / 2;
+                camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, .1, 1e5 );
+                renderer = new THREE.WebGLRenderer();
+                scene = new THREE.Scene();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer.setClearColor(0x3d3d3d, 1);
+                document.body.appendChild( renderer.domElement );
+                camera.position.z = 300;
+
+                controls = new THREE.TrackballControls( camera );
+
+                clock = new THREE.Clock();
+            
+                initGUI();
+                initStats();
+                initInfo();
+                initEvent();
+
+                
+
+                // let loadMgr = new THREE.LoadingManager();
+                // loadMgr.onStart = (url, loaded, total) => {
+                //     console.log(`url = ${url}, loaded = ${loaded}, total = ${total}`);                    
+                // };
+                // loadMgr.onLoad = () => { console.warn('loading...') };
+                // loadMgr.onProgress = (url, loaded, total) => {
+                //     console.warn(`url = ${url}, loaded = ${loaded}, total = ${total}`);
+                // };
+                // loadMgr.onError = () => { console.error('error') };
+                
+                // let fbxLoader1 = new THREE.FBXLoader(loadMgr);
+                // fbxLoader1.load( './textures/trafficLight.FBX', object => {
+                //     let model = object.children[ 0 ];
+                //     model.position.set( 0, 0, 0 );
+                //     model.scale.setScalar( 1 );
+                //     scene.add( model );
+                // } );
+                // let fbxLoader2 = new THREE.FBXLoader(loadMgr);
+                // fbxLoader2.load( './textures/trafficLight.FBX', object => {
+                //     let model = object.children[ 0 ];
+                //     model.position.set( 0, 0, 0 );
+                //     model.scale.setScalar( 1 );
+                //     scene.add( model );
+                // } );
+                // let fbxLoader3 = new THREE.FBXLoader(loadMgr);
+                // fbxLoader3.load( './textures/trafficLight.FBX', object => {
+                //     let model = object.children[ 0 ];
+                //     model.position.set( 0, 0, 0 );
+                //     model.scale.setScalar( 1 );
+                //     scene.add( model );
+                // } );
+                // let fbxLoader4 = new THREE.FBXLoader(loadMgr);
+                // fbxLoader4.load( './textures/trafficLight.FBX', object => {
+                //     let model = object.children[ 0 ];
+                //     model.position.set( 0, 0, 0 );
+                //     model.scale.setScalar( 1 );
+                //     scene.add( model );
+                // } );
+
+
+                // var geometry = new THREE.PlaneBufferGeometry( 1920, 1080 );
+                // var video = document.createElement( 'video' );
+				// video.crossOrigin = 'anonymous';
+				// video.width = 640;
+				// video.height = 360;
+				// video.loop = true;
+				// video.muted = true;
+				// // video.src = 'textures/pano.webm';
+                // video.src = '铁路通信段_batch.mp4';
+				// video.setAttribute( 'webkit-playsinline', 'webkit-playsinline' );
+				// video.play();
+
+				// var texture = new THREE.VideoTexture( video );
+				// texture.minFilter = THREE.LinearFilter;
+				// texture.format = THREE.RGBFormat;
+
+				// var material = new THREE.MeshBasicMaterial( { map: texture } );
+
+				// let mesh = new THREE.Mesh( geometry, material );
+
+				// scene.add( mesh );
+                
+                
+
+                // createP2P( startP, endP, jtMoveTime, isLoadTexture );
+                // createLines();
+
+                // createThingAround( new THREE.Vector3( 300, 300, 0 ), 1, 50, 300 );
+                // createThingAround( new THREE.Vector3( 50, -75, 0 ), 5 );
+                // createThingAround( new THREE.Vector3( -50, 75, 0 ), 2 );
+                // createThingAround( new THREE.Vector3( -300, -300, 0 ), 2, 25, 200 );
+
+				// let stepSC = 200;
+                // createSingalCube( new THREE.Vector3( -stepSC, stepSC, 0 ), 0xabcdef, 'Boy' );
+                // createSingalCube( new THREE.Vector3( stepSC, stepSC, 0 ), 0xfedcba, 'Girl' );
+                // createSingalCube( new THREE.Vector3( -stepSC, -stepSC, 0 ), 0x456789, 'Adam' );
+                // createSingalCube( new THREE.Vector3( stepSC, -stepSC, 0 ), 0x987654, 'Eve' );
+
+                // createTestMesh();
+
+                // createTrafficLight();
+
+
+                // let random = Math.random() * ( Math.PI * 2 );
+                // let geometry = new THREE.TorusBufferGeometry( 10, 0.1, 30, 200, random );
+                // let edges = new THREE.EdgesGeometry( geometry );
+                // let line = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: 0xffffff } ) );
+                // line.scale.set( 25, 25, 25 );
+                // line.rotation.set( Math.PI / 2, 0, 0 );
+                // scene.add( line );
+
+                // createThingAround(new THREE.Vector3(0,0,0), 2);
+
+
+                // particleSystem = new THREE.GPUParticleSystem( {
+                //     maxParticles: 250000
+                // } );
+                // particleSystem.name = 'testParticleSystem';
+                // scene.add(particleSystem);
+            }
+
+            function showAXIS () {
+                let axis = new THREE.AxisHelper( 500 );
+                axis.position.set( -750, 0, 0 );
+                scene.add(axis);
+            }
+
+            function createTrafficLight () {
+                let fbxLoader = new THREE.FBXLoader();
+                fbxLoader.load( './textures/trafficLight.FBX', object => {
+                    let model = object.children[ 0 ];
+                    model.position.set( 0, 0, 0 );
+                    model.scale.setScalar( 1 );
+                    let geometry = new THREE.CircleGeometry( 75, 32 );
+                    let materialGreen = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+                    let materialYellow = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+                    let materialRed = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+                    let materialArr = [];
+                    materialArr.push( materialGreen );
+                    materialArr.push( materialYellow );
+                    materialArr.push( materialRed );
+                    let tl = new THREE.Mesh( geometry, materialGreen );
+                    let posiArr = [ 300, 0, -300 ];
+                    tl.position.set( 0, -200, 300 );
+                    tl.rotation.set( Math.PI / 2, 0, 0 );
+                    model.add(tl);
+                    let index = 0;
+                    setInterval( () => {
+                        tl.material = materialArr[ ++index % 3 ];
+                        tl.position.set( 0, -200, posiArr[ index % 3 ] );
+                    }, 3e3 );
+                    scene.add( model );
+                } );
+            }
+
+            function initInfo () {
+                let size = {
+                    width: '100px',
+                    height: '100px'
+                }
+                if (showType)
+                    tagInfo = new TagInfo( scene, camera, size );
+                else
+                    spriteInfo = new SpriteInfo( scene, camera );
+            }
+
+            function onMouseMove ( event ) {
+                if (showType)
+                    tagInfo.getIntersectObjects( event );
+                else            
+                    spriteInfo.getIntersectObjects( event );
+            }
+
+            function createTestMesh () {
+                let v = `
+                    varying vec2 vUv;
+                    varying vec4 pos;
+                    void main () {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                        pos = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                    }
+                `;
+                let f = `
+                    uniform float time;
+                    varying vec2 vUv;
+                    void main () {
+                        vec2 position = 10.0 * vUv - 5.0;
+                        float red = abs( sin( position.x * position.y + time / 5.0 ) );
+                        float green = abs( sin ( position.x * position.y + time / 4.0 ) );
+                        float blue = abs( sin ( position.x * position.y + time / 3.0 ) );
+                        gl_FragColor = vec4( red, green, blue, 1.0 );
+                    }
+
+                    // varying vec2 vUv;
+                    // varying vec4 pos;
+                    // uniform float time;
+                    // void main () {
+                    //     if ( fract( time ) > 0.67 ) {
+                    //         gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+                    //     } else if ( fract( time ) > 0.33 ) {
+                    //         gl_FragColor = vec4( 0.0, 1.0, 0.0, 1.0 );
+                    //     } else {
+                    //         gl_FragColor = vec4( 0.0, 0.0, 1.0, 1.0 );
+                    //     }
+                    //     // if ( pos.y > 10.0 ) {
+                    //     //     gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+                    //     // } else if ( pos.y < -10.0 ) {
+                    //     //     gl_FragColor = vec4( 0.0, 1.0, 0.0, 1.0 );
+                    //     // } else {
+                    //     //     gl_FragColor = mix( vec4( 0.0, 1.0, 0.0, 1.0 ), vec4( 1.0, 0.0, 0.0, 1.0 ), smoothstep( -10.0, 10.0, pos.y ) );
+                    //     // }
+                    // }
+                `;
+                shaderParams = {
+                    time: { value: 0.0 }
+                };
+                let geometry = new THREE.BoxGeometry( 1e2, 1e2, 1e2 );
+                let material = new THREE.ShaderMaterial( {
+                    uniforms: shaderParams,
+                    vertexShader: v,
+                    fragmentShader: f
+                } );
+                let mesh = new THREE.Mesh( geometry, material );
+                mesh.position.set( -200, 0, 0 );
+                mesh.name = 'CC';
+                scene.add( mesh );
+            }
+
+            function initEvent () {
+                document.addEventListener( 'resize', onWindowResize );
+                document.addEventListener( 'mousemove', onMouseMove );
+            }
+            
+            function createSingalCube ( posi, color, name ) {
+                let geometry = new THREE.BoxGeometry( 1e2, 1e2, 25 );
+                let material = new THREE.MeshBasicMaterial( { 
+					color: color,
+                	transparent: true
+                } );
+                let cube = new THREE.Mesh( geometry, material );
+                cube.position.set( posi.x, posi.y, posi.z );
+                cube.name = name;
+                scene.add( cube );
+            }
+
+            function createThingAround ( pos, seconds, scale, offset ) {
+                new LightRing( pos, seconds, scale, offset ).Show( mesh => {
+                    scene.add( mesh );
+                } );
+            }
+
+            function createLines () {
+                window.C_INDEX = 0;
+                window.COLOR_LIST = [ 0x987654, 0xffffff, 0x654321, 0x123456, 0xabcdef ];
+                new LineArrs( getLineArrs() ).show( group => {
+                    scene.add( group );
+                } );
+                setTimeout( () => {
+                    new LineArrs( getLineArrs2() ).show( group => {
+                        scene.add( group );
+                    } );
+                } , 2e3 );
+            }            
+
+            function createP2P ( startP, endP, times, isLoadTexture ) {
+                let tube = new PointArrow( startP, endP, times, isLoadTexture );
+                tube.Move2Point( mesh => {
+                    scene.add( mesh );
+                } );
+            }
+
+            function clearObject () {
+                for ( let i = scene.children.length - 1; i > -1; i-- )
+                    scene.remove( scene.children[ i ] );
+            }
+
+            function initStats () {
+				stats = new Stats();
+				container.appendChild( stats.dom );
+            }
+
+            function initGUI () {
+                let params = {
+                    seconds: jtMoveTime,
+                    isLoadTexture: false,
+                    // lX: lightX,
+                    // lY: lightY,
+                    // lZ: lightZ
+                };
+                let gui = new dat.GUI();
+                let folder = gui.addFolder( "Controller" );
+                // folder.add( params, "seconds", 1, 10 ).step( 1 ).onChange( value => {
+                //     if ( jtMoveTime != value ) {
+                //         jtMoveTime = value;
+                //         clearObject();
+                //         createP2P( startP, endP, jtMoveTime, isLoadTexture );
+                //     }
+                // } );
+                // folder.add( params, "isLoadTexture" ).onChange( value => {
+                //     if ( isLoadTexture != value ) {
+                //         isLoadTexture = value;
+                //         clearObject();
+                //         createP2P( startP, endP, jtMoveTime, isLoadTexture );
+                //     }
+                // } );
+                // folder.add( params, 'lX', -1e3, 1e3 ).step( 100 ).onChange( value => {
+                //     lightX = value;
+                //     tlGreen.position.x = lightX;
+                // } );
+                // folder.add( params, 'lY', -1e3, 1e3 ).step( 100 ).onChange( value => {
+                //     lightY = value;
+                //     tlGreen.position.y = lightY;
+                // } );
+                // folder.add( params, 'lZ', -1e3, 1e3 ).step( 100 ).onChange( value => {
+                //     lightZ = value;
+                //     tlGreen.position.z = lightZ;
+                // } );
+                folder.open();
+            }
+
+            let options = {
+				position: new THREE.Vector3(),
+				positionRandomness: .3,
+				velocity: new THREE.Vector3(),
+				velocityRandomness: .5,
+				color: 0xffffff,
+				colorRandomness: .2,
+				turbulence: .5,
+				lifetime: 2,
+				size: 5,
+				sizeRandomness: 1
+			};
+            let spawnerOptions = {
+				spawnRate: 15000,
+				horizontalSpeed: 1.5,
+				verticalSpeed: 1.33,
+				timeScale: 1
+			};
+            let tick = 0;
+
+            function animate () {
+                // let delta = clock.getDelta();
+                // shaderParams.time.value += delta * 5;
+                requestAnimationFrame( animate );
+				stats.update();
+                render();
+
+                let delta = clock.getDelta() * spawnerOptions.timeScale;
+                tick += delta;
+                if ( tick < 0 ) tick = 0;
+                if ( delta > 0 ) {
+                    options.position.x = Math.sin( tick * spawnerOptions.horizontalSpeed ) * 20;
+                    // options.position.y = Math.sin( tick * spawnerOptions.verticalSpeed ) * 10;
+                    // options.position.z = Math.sin( tick * spawnerOptions.horizontalSpeed + spawnerOptions.verticalSpeed ) * 5;
+                    // for ( let x = 0; x < spawnerOptions.spawnRate * delta; x ++ ) {
+                    //     particleSystem.spawnParticle( options );
+                    // }
+                }
+                // particleSystem.update( tick );
+
+            }
+
+            function render () {
+                if ( !window.showInfo ) {
+                    controls.update();
+                }
+                renderer.render( scene, camera );
+            }
+
+            function onWindowResize () {
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+			
+			function getLineArrs2 () {
+                let lineArrs = [];
+                let lineArr_0 = [
+                    new THREE.Vector3( 138, 90, 357 ),
+                    new THREE.Vector3( 130, 57, 268 ),
+                    new THREE.Vector3( 130, 67, 390 ),
+                    new THREE.Vector3( 854, 91, 847 )
+                ];
+                let lineArr_1 = [
+                    new THREE.Vector3( 853, 29, 556 ),
+                    new THREE.Vector3( 854, 91, 380 ),
+                    new THREE.Vector3( 856, 32, 253 )
+                ];
+                let lineArr_2 = [
+                    new THREE.Vector3( 234, 46, 67 ),
+                    new THREE.Vector3( 78, 56, 6 ),
+                    new THREE.Vector3( 432, 20, 50 ),
+                    new THREE.Vector3( 70, 60, 60 ),
+                    new THREE.Vector3( 100, 50, 50 )
+                ];
+                let lineArr_3 = [
+                    new THREE.Vector3( 98, 98, 98 ),
+                    new THREE.Vector3( 199, 199, 199 )
+                ];
+                let lineArr_4 = [
+                    new THREE.Vector3( 50, 50, 50 ),
+                    new THREE.Vector3( -50, -50, -50 ),
+                    new THREE.Vector3( -75, -75, -75 ),
+                    new THREE.Vector3( -50, -50, 0),
+                    new THREE.Vector3( 50, 50, 0),
+                    new THREE.Vector3( 50, 50, 50)
+                ];
+                lineArrs.push( lineArr_0 );
+                lineArrs.push( lineArr_1 );
+                lineArrs.push( lineArr_2 );
+                lineArrs.push( lineArr_3 );
+                lineArrs.push( lineArr_4 );
+                return lineArrs;
+            }
+
+            function getLineArrs () {
+                let lineArrs = [];
+                let lineArr_0 = [
+                    new THREE.Vector3( -10, 0, 10 ),
+                    new THREE.Vector3( -5, 5, 5 ),
+                    new THREE.Vector3( 0, 0, 0 ),
+                    new THREE.Vector3( 5, -5, 5 ),
+                    new THREE.Vector3( 10, 0, 10 )
+                ];
+                let lineArr_1 = [
+                    new THREE.Vector3( 50, 0, 0 ),
+                    new THREE.Vector3( 25, 5, 0 ),
+                    new THREE.Vector3( 0, -10, 50 ),
+                    new THREE.Vector3( -25, 5, 0 ),
+                    new THREE.Vector3( -50, 0, 0 )
+                ];
+                let lineArr_2 = [
+                    new THREE.Vector3( 75, 25, 75 ),
+                    new THREE.Vector3( 125, 25, 125 ),
+                    new THREE.Vector3( 0, 0, 0 ),
+                    new THREE.Vector3( -50, -50, -50 ),
+                    new THREE.Vector3( -200, 200, 200 )
+                ];
+                let lineArr_3 = [
+                    new THREE.Vector3( 250, 0, 250 ),
+                    new THREE.Vector3( -250, 0, -250 )
+                ];
+                let lineArr_4 = [
+                    new THREE.Vector3( 8, 64, 74 ),
+                    new THREE.Vector3( 8, 76, 122 ),
+                    new THREE.Vector3( 122, 149, 101 ),
+                    new THREE.Vector3( 172, 602, 912 ),
+                    new THREE.Vector3( 419, 407, 120 ),
+                    new THREE.Vector3( 138, 90, 35 )
+                ];
+                lineArrs.push( lineArr_0 );
+                lineArrs.push( lineArr_1 );
+                lineArrs.push( lineArr_2 );
+                lineArrs.push( lineArr_3 );
+                lineArrs.push( lineArr_4 );
+                return lineArrs;
+            }
+
+            init();
+            animate();
+        </script>
+    </body>
+</html>

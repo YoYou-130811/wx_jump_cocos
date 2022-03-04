@@ -1,0 +1,301 @@
+<!--
+ * @Author         : 杨洋
+ * @Date           : 2021-10-09 09:25:54
+ * @lastTime       : 2022-03-04 17:42:40
+ * @文件相对于项目的路径     : \three\examples\testMF.html
+ * @Description    : 
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Test three.js</title>
+		<style>
+            .btnDiv {
+                position: fixed;
+                left: 0%;
+                top: 50%;
+                transform: translateY(-50%);
+                display: none;
+            }
+            .btn {
+                border: 0;
+                background-color: aqua;
+                padding: 10px 20px 10px 20px;
+                color: white;
+                font-size: 30px;
+            }
+            
+            .aniDiv {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 5%;
+                width: 80%;
+                height: 30px;
+                background-color: green;
+                border-radius: 15px;
+            }
+            .jdt {
+                position: absolute;
+                left: 1%;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 30px;
+                color: white;
+            }
+
+            .startDiv {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: 10%;
+                display: none;
+            }
+            .startBtn {
+                border: none;
+                border-radius: 5px;
+                background-color: aqua;
+                padding: 15px 30px;
+            }
+		</style>
+    </head>
+    <body style="overflow: hidden; margin: 0;">
+        <div id="container">
+            <div id="btnDiv" class="btnDiv"><button class="btn">rotate</button></div>
+            <div id="startDiv" class="startDiv"><button class="startBtn">Start</button></div>
+        </div>
+        
+        <div id="aniDiv" class="aniDiv">
+            <span id="jdt" class="jdt"></span>
+        </div>
+        <script src="../build/three.js"></script>
+		<script src="js/WebGL.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+        <script src="js/TweenJS/dist/tween.umd.js"></script>
+        <script src="js/GPUParticleSystem.js"></script>
+        <script src="TweenJS/dist/tween.umd.js"></script>
+        <script type="module">
+            import { TagInfo } from './js/p2p/TagInfo.js';
+
+            let camera, renderer, scene, stats, tagInfo, cameraZ_Index = 650, controls,
+                mfColList = [], mfRowList = [], mfList = [], mcList = [];
+
+            const init = () => {
+                initScene();
+                initStats();
+                initInfo();
+                initEvent();
+                createMF();
+            }
+
+            const createMF = () => {
+                initCRList();
+                let step = 1.1e2;
+                let mf = new THREE.Object3D();
+                let posiArr = [ new THREE.Vector3( step, step, step ), new THREE.Vector3( step, step, 0 ), new THREE.Vector3( step, step, -step ),
+                                new THREE.Vector3( step, 0, step ), new THREE.Vector3( step, 0, 0 ), new THREE.Vector3( step, 0, -step ),
+                                new THREE.Vector3( step, -step, step ), new THREE.Vector3( step, -step, 0 ), new THREE.Vector3( step, -step, -step ),
+                                new THREE.Vector3( 0, step, step ), new THREE.Vector3( 0, step, 0 ), new THREE.Vector3( 0, step, -step ),
+                                new THREE.Vector3( 0, 0, step ), new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, -step ),
+                                new THREE.Vector3( 0, -step, step ), new THREE.Vector3( 0, -step, 0 ), new THREE.Vector3( 0, -step, -step ),
+                                new THREE.Vector3( -step, step, step ), new THREE.Vector3( -step, step, 0 ), new THREE.Vector3( -step, step, -step ),
+                                new THREE.Vector3( -step, 0, step ), new THREE.Vector3( -step, 0, 0 ), new THREE.Vector3( -step, 0, -step ),
+                                new THREE.Vector3( -step, -step, step ), new THREE.Vector3( -step, -step, 0 ), new THREE.Vector3( -step, -step, -step )
+                ];
+                let colorIndex = [ 0, 2, 6, 8, 18, 20, 24, 26 ];
+                for ( let i = 0; i < posiArr.length; i++ )
+                    // create6P_Cube( posiArr[ i ], `mf${ i }`, mf );
+                    createSingalCube( posiArr[ i ], colorIndex.includes( i ) ? `#ff0000` : `#ffffff`, `mf${ i }`, mf );
+                scene.add( mf );                
+            }
+
+            const createSingalCube = ( posi, color, name, parent ) => {
+                let geometry = new THREE.BoxGeometry( 1e2, 1e2, 1e2 );
+                let material = new THREE.MeshBasicMaterial( { 
+                    color: color,
+                    transparent: true,
+                    opacity: color == `#ffffff` ? 0.75 : 0.55
+                } );
+                let cube = new THREE.Mesh( geometry, material );
+                cube.position.set( posi.x, posi.y, posi.z );
+                cube.name = name;
+                parent.add( cube );
+                mfList.push( cube );
+                return cube;
+            }
+
+            const create6P_Cube = ( posi, name, parent ) => {
+                let geometry = new THREE.BoxGeometry( 1e2, 1e2, 1e2 );
+                let materials = [];
+                for ( let i = 1; i < 7; i++ )
+                    materials.push( new THREE.MeshBasicMaterial( { map: new THREE.TextureLoader().load( `./textures/img/${i}.png` ) } ) );
+                let cube = new THREE.Mesh( geometry, materials );
+                cube.position.set( posi.x, posi.y, posi.z );
+                cube.name = name;
+                parent.add( cube );
+                mfList.push( cube );
+                return cube;
+            }
+
+            const initScene = () => {
+                camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, .1, 1e5 );
+                renderer = new THREE.WebGLRenderer( {
+                    antialias: true,
+                    alpha: true
+                } );
+                scene = new THREE.Scene();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer.setClearColor( 0x3d3d3d, 1 );
+                renderer.autoClear = true;
+                renderer.setPixelRatio( window.devicePixelRatio );
+                camera.position.z = cameraZ_Index;
+                document.body.appendChild( renderer.domElement );
+                scene.rotation.set( Math.PI / 4, Math.PI / 4, 0 );
+            }
+
+            const initInfo = () => { tagInfo = new TagInfo( scene, camera, { width: `100px`, height: `100px` } ); }
+
+            const initEvent = () => {
+                document.addEventListener( `resize`, () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize( window.innerWidth, window.innerHeight );
+                } );
+                document.addEventListener( `mousemove`, event => {
+                    tagInfo.getIntersectObjects( event );
+                } );
+                document.addEventListener( `click`, event => {
+                    tagInfo.getIntersectObjects( event, 0 );
+                } );
+                window.addEventListener( `resize`, () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+                document.addEventListener(`mfInsert`, msg => {
+                    console.error(msg);
+                    
+                } );
+            }
+
+            const initCRList = () => {
+                for ( let i = 0; i < 3; i++ ) {
+                    mfColList.push(new THREE.Group());
+                    mfRowList.push(new THREE.Group());
+                }
+            }
+
+            const clearCRList = () => {
+                for ( let c of mfColList )
+                    scene.remove( c );
+                for ( let r of mfRowList )
+                    scene.remove( r );
+            }
+
+            const mfRotateC = ( col, rNum, time, callback ) => {
+                clearCRList();
+                let cArr = [ [], [], [] ];
+                for ( let i = 0; i < mfList.length; i++ ) {
+                    if ( i < 9) cArr[ 0 ].push( mfList[i] );
+                    else if ( i < 18 ) cArr[ 1 ].push( mfList[i] );
+                    else cArr[ 2 ].push( mfList[i] );
+                }
+                for ( let i = 0; i < cArr.length; i++ )
+                    for ( let c of cArr[ i ] )
+                        mfColList[ i ].add( c );
+                for ( let c of mfColList )
+                    scene.add( c );
+                let oldRX = mfColList[ col ].rotation.x;
+                new TWEEN.Tween( mfColList[ col ].rotation ).to( { x: oldRX + ( rNum * Math.PI / 2 ) }, time * 1e3 ).onComplete( () => {
+                    callback && callback();
+                } ).start();
+            }
+
+            const mfRotateR = ( row, rNum, time, callback ) => {
+                clearCRList();
+                let rArr = [ [], [], [] ];
+                let startNums = [ 0, 3, 6 ];
+                for ( let i = 0; i < startNums.length; i++ ) {
+                    for ( let j = 0; j < 3; j++ )
+                        rArr[ i ].push( mfList[ startNums[i] + j ] );
+                    for ( let j = 9; j < 12; j++ )
+                        rArr[ i ].push( mfList[ startNums[i] + j ] );
+                    for ( let j = 18; j < 21; j++ )
+                        rArr[ i ].push( mfList[ startNums[i] + j ] );
+                }
+                for ( let i = 0; i < rArr.length; i++ )
+                    for ( let r of rArr[ i ] )
+                        mfRowList[ i ].add( r );
+                for ( let r of mfRowList )
+                    scene.add( r );
+                let oldRY = mfRowList[ row ].rotation.y;
+                new TWEEN.Tween( mfRowList[ row ].rotation ).to( { y: oldRY + ( rNum * Math.PI / 2 ) }, time * 1e3 ).onComplete( () => {
+                    callback && callback();
+                } ).start();
+            }
+
+            const initBtnListener = () => {
+                document.getElementById( `startDiv` ).onclick = () => {
+                    document.getElementById( `aniDiv` ).style.display = `none`;
+                    document.getElementById( `startDiv` ).style.display = `none`;
+                    document.getElementById( `btnDiv` ).style.display = `block`;
+                    init();
+                    animate();
+                }
+                document.getElementById( `btnDiv` ).onclick = () => {
+                    document.getElementById( `btnDiv` ).style.display = `none`;
+                    autoRotate();
+                }
+            }
+
+            const autoRotate = ( time = 1 ) => {
+                if ( Math.random() < 0.5 )
+                    mfRotateC( ~~( Math.random() * 3 ), ~~( Math.random() * 3 ), time, () => {
+                        autoRotate( time / 1.1 < 0.1 ? 0.1 : time / 1.1 );
+                    } );
+                else 
+                    mfRotateR( ~~( Math.random() * 3 ), ~~( Math.random() * 3 ), time, () => {
+                        autoRotate( time / 1.1 < 0.1 ? 0.1 : time / 1.1 );
+                    } );
+            }
+
+            const initStats = () => {
+                stats = new Stats();
+				container.appendChild( stats.dom );
+            }
+
+            const animate = () => {
+                requestAnimationFrame( animate );
+				stats && stats.update();
+                renderer && renderer.render( scene, camera );
+				controls && controls.update();
+                TWEEN.update();
+            }
+
+            const toFixed = ( num, fixed ) => ~~( Math.pow( 10, fixed ) * num ) / Math.pow( 10, fixed );
+            let num = 0;
+            let interval = setInterval( () => {
+                num += 0.1;
+                if ( ++num >= 100 ) {
+                    num = 99.99;
+                    clearInterval( interval );
+                    setTimeout( () => {
+                        document.getElementById( `startDiv` ).style.display = `block`;
+                        initBtnListener();
+                    }, 5e2 );
+                }
+                document.getElementById( `jdt` ).innerHTML = `${toFixed( num, 2 )}%`;
+            }, 12.5 );
+            let imgWidth = document.getElementById( `aniDiv` ).clientWidth;
+            let style = document.createElement( `style` );
+            style.type = `text/css`;
+            style.innerHTML = `@keyframes jdtAni {
+                0% {clip: rect(0 0 30px 0);}
+                100% {clip: rect(0 ${imgWidth}px 30px 0);}
+            }`;
+            document.getElementsByTagName( `head` )[ 0 ].appendChild( style );
+            document.getElementById( `aniDiv` ).style.animation = `jdtAni 1.5s ease forwards`;
+        </script>
+    </body>
+</html>

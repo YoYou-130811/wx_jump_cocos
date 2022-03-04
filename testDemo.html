@@ -1,0 +1,159 @@
+<!--
+ * @Author         : 杨洋
+ * @Date           : 2021-10-09 09:25:54
+ * @lastTime       : 2021-10-25 14:32:34
+ * @文件相对于项目的路径     : \three\examples\testDemo.html
+ * @Description    : 
+-->
+<html>
+    <head>
+        <title>My first three.js app</title>
+		<style>
+			body {
+				margin: 0px;
+			}
+		</style>
+    </head>
+    <body>
+        <script src="../build/three.js"></script>        
+		<script src="js/WebGL.js"></script>
+        <script src="js/libs/dat.gui.min.js"></script>
+        <script type="module">
+            // import { P2P } from './js/p2p/P2P.js';
+            if ( !WEBGL.isWebGLAvailable() )
+                document.body.appendChild( WEBGL.getWebErrorMessage() );
+
+            let camera, renderer, scene, cubeList = [], mouseX, mouseY, arrow, jtMoveTime = 4,
+                windowHalfX, windowHalfY, cubeNum = 1e3, isRotate = true, cameraZIndex = 0,
+                colorList = [ 0x987654, 0xffffff, 0x654321, 0x123456, 0xabcdef ];
+
+            function clearCube () {
+                for ( let i = scene.children.length - 1; i > -1; i-- )
+                    scene.remove( scene.children[ i ] );
+            }
+
+            function createCube () {
+                clearCube();
+                let geometry = new THREE.BoxGeometry( 1e2, 1e2, 1e2 );
+                for ( let i = 0; i < cubeNum; i++ ) {
+                    let random = ~~( Math.random() * 10 );
+                    let material = new THREE.MeshBasicMaterial( { color: colorList[ ~~( random / 2 ) ] } );
+                    let cube = new THREE.Mesh( geometry, material );
+                    cube.position.x = Math.random() * cubeNum * 2 - cubeNum;
+                    cube.position.y = Math.random() * cubeNum * 2 - cubeNum;
+                    cube.position.z = Math.random() * cubeNum * 2 - cubeNum;
+                    scene.add( cube );
+                    cubeList.push( cube );
+                }
+                camera.position.z = cameraZIndex;
+            }
+
+            function initGUI () {
+                let params = {
+                    number: 1e3,
+                    rotate: true,
+                    scene: 1,
+                    seconds: jtMoveTime,
+                }
+                let gui = new dat.GUI();
+                let folder = gui.addFolder( "Controller" );
+                folder.add( params, "number", 1e3, 5e3 ).step( 1e3 ).onChange( value => {
+                    if (cubeNum != value) {
+                        cubeNum = value;
+                        cameraZIndex = cubeNum / 5;
+                        createCube();
+                    }
+                });
+                folder.add( params, "rotate" ).onChange( value => {
+                    isRotate = value;
+                });
+                folder.add( params, "scene", [ 1, 2, 3 ] ).onChange( value => {
+                    
+                });
+                folder.add( params, "seconds", 1, 10 ).step( 1 ).onChange( value => {
+                    if (jtMoveTime != value) {
+                        jtMoveTime = value;
+                        createJT( new THREE.Vector3( 1e3, 0, 0 ), new THREE.Vector3( -1e3, 0, 0 ), jtMoveTime );
+                    }
+                });
+                folder.open();
+            }
+
+            function init () {
+                mouseX = mouseY = 0;
+                windowHalfX = innerWidth / 2;
+                windowHalfY = innerHeight / 2;
+                camera = new THREE.PerspectiveCamera( 150, window.innerWidth / window.innerHeight, 1, 1e4 );
+                renderer = new THREE.WebGLRenderer();
+                scene = new THREE.Scene();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                document.body.appendChild( renderer.domElement );
+                camera.position.z = cameraZIndex;                
+
+				// document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+                // window.addEventListener( 'resize', onWindowResize, false );
+
+                // createCube();
+
+                // createJT( new THREE.Vector3( 1e3, 0, 0 ), new THREE.Vector3( -1e3, 0, 0 ), jtMoveTime );
+                // let jt = new P2P( new THREE.Vector3( 1e3, 0, 0 ), new THREE.Vector3( -1e3, 0, 0 ), 4 );
+                // jt.move2Point();
+
+                initGUI();
+
+                // createSingalCube();
+            }
+
+            function clearJT () {
+                for ( let i = scene.children.length - 1; i > -1; i-- )
+                    scene.remove( scene.children[ i ] );
+            }
+
+            function createJT ( dir, origin, times ) {
+                clearJT();
+                let distance = origin.distanceTo( dir );
+                let step = distance / times;
+                arrow = new THREE.ArrowHelper( dir, origin, step, 0x123456 );
+                scene.add( arrow );
+                let index = 0;
+                let interval = setInterval( () => {
+                    arrow.setLength( ( step / 40 ) * ++index );
+                    if ( index >= ( times * 40 ) )
+                        clearInterval(interval);
+                }, 25 );
+            }
+
+            function render () {
+				camera.position.x += ( mouseX - camera.position.x ) * 5e-2;
+				camera.position.y += ( - mouseY + 200 - camera.position.y ) * 5e-2;
+				camera.lookAt( scene.position );
+				renderer.render( scene, camera );
+            }
+
+            function onDocumentMouseMove ( event ) {
+				mouseX = ( event.clientX - windowHalfX ) * 5;
+				mouseY = ( event.clientY - windowHalfY ) * 5;
+            }
+
+            function onWindowResize () {
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+            }
+
+            function animate () {
+                requestAnimationFrame( animate );
+                // cubeList.forEach( cube => {
+                //     cube.rotation.x += isRotate ? 5e-2 : 0;
+                //     cube.rotation.y += isRotate ? 5e-2 : 0;
+                // });  
+                render();
+            }
+
+            init();
+            animate();
+        </script>
+    </body>
+</html>
